@@ -19,7 +19,7 @@ pipeline {
 
     stage('ECR Login') {
       steps {
-        sh '''
+        bat '''
           aws ecr get-login-password --region $AWS_REGION \
           | docker login --username AWS --password-stdin $ECR_REPO
         '''
@@ -28,7 +28,7 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        sh '''
+        bat '''
           cd apps/s3-app
           docker build -t s3-app:$IMAGE_TAG .
           docker tag s3-app:$IMAGE_TAG $ECR_REPO:$IMAGE_TAG
@@ -38,7 +38,7 @@ pipeline {
 
     stage('Push Image to ECR') {
       steps {
-        sh '''
+        bat '''
           docker push $ECR_REPO:$IMAGE_TAG
         '''
       }
@@ -46,7 +46,7 @@ pipeline {
 
     stage('Deploy to EKS') {
       steps {
-        sh '''
+        bat '''
           cd apps/s3-app
           sed -i "s|IMAGE_TAG|$IMAGE_TAG|g" k8s/deployment.yaml
           kubectl apply -f k8s/
