@@ -4,13 +4,12 @@ pipeline {
   environment {
     AWS_REGION = "ap-south-1"
     ACCOUNT_ID = "442880721659"
-    ECR_REPO   = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/s3-app"
-    IMAGE_TAG  = "${BUILD_NUMBER}"
+    ECR_REPO   = "%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app"
   }
 
   stages {
 
-    stage('Checkout Code') {
+    stage('Checkout') {
       steps {
         git branch: 'main',
             url: 'https://github.com/nenavathsrinu/eks-prod-cicd-working.git'
@@ -20,26 +19,26 @@ pipeline {
     stage('ECR Login') {
       steps {
         bat '''
-          aws ecr get-login-password --region $AWS_REGION \
-          | docker login --username AWS --password-stdin $ECR_REPO
+        aws ecr get-login-password --region %AWS_REGION% ^
+        | docker login --username AWS --password-stdin %ECR_REPO%
         '''
       }
     }
 
-    stage('Build Docker Image') {
+    stage('Build Image') {
       steps {
         bat '''
-          cd apps/s3-app
-          docker build -t s3-app:$IMAGE_TAG .
-          docker tag s3-app:$IMAGE_TAG $ECR_REPO:$IMAGE_TAG
+        cd apps\\s3-app
+        docker build -t s3-app:%BUILD_NUMBER% .
+        docker tag s3-app:%BUILD_NUMBER% %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
     }
 
-    stage('Push Image to ECR') {
+    stage('Push Image') {
       steps {
         bat '''
-          docker push $ECR_REPO:$IMAGE_TAG
+        docker push %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
     }
@@ -47,9 +46,9 @@ pipeline {
     stage('Deploy to EKS') {
       steps {
         bat '''
-          cd apps/s3-app
-          sed -i "s|IMAGE_TAG|$IMAGE_TAG|g" k8s/deployment.yaml
-          kubectl apply -f k8s/
+        cd apps\\s3-app
+        powershell -Command "(Get-Content k8s\\deployment.yaml) -replace 'IMAGE_TAG','%BUILD_NUMBER%' | Set-Content k8s\\deployment.yaml"
+        kubectl apply -f k8s\\
         '''
       }
     }
