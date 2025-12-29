@@ -2,9 +2,10 @@ pipeline {
   agent any
 
   environment {
-    AWS_REGION = "ap-south-2"
-    ACCOUNT_ID = "442880721659"
-    ECR_REPO   = "%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app"
+    AWS_REGION  = "ap-south-2"
+    ACCOUNT_ID  = "442880721659"
+    ECR_REGISTRY = "%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com"
+    ECR_REPO     = "%ECR_REGISTRY%/s3-app"
   }
 
   stages {
@@ -21,13 +22,17 @@ pipeline {
         withCredentials([
           [
             $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-cred'
+            credentialsId: 'aws-cred'   // make sure this ID exists
           ]
         ]) {
           bat '''
+          echo AWS_REGION=%AWS_REGION%
+          echo ACCOUNT_ID=%ACCOUNT_ID%
+
           aws sts get-caller-identity
+
           aws ecr get-login-password --region %AWS_REGION% ^
-          | docker login --username AWS --password-stdin %ECR_REPO%
+          | docker login --username AWS --password-stdin %ECR_REGISTRY%
           '''
         }
       }
