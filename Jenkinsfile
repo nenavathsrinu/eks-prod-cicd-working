@@ -2,8 +2,8 @@ pipeline {
   agent any
 
   environment {
-    AWS_REGION  = "ap-south-2"
-    ACCOUNT_ID  = "442880721659"
+    AWS_REGION   = "ap-south-2"
+    ACCOUNT_ID   = "442880721659"
     ECR_REGISTRY = "%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com"
     ECR_REPO     = "%ECR_REGISTRY%/s3-app"
   }
@@ -22,7 +22,7 @@ pipeline {
         withCredentials([
           [
             $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-cred'   // make sure this ID exists
+            credentialsId: 'aws-cred'   // ✅ make sure this ID exists
           ]
         ]) {
           bat '''
