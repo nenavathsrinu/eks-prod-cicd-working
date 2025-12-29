@@ -38,7 +38,7 @@ pipeline {
     stage('Build Image') {
       steps {
         bat '''
-        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app
+        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-irsa-app
 
         cd apps\\s3-app
         docker build -t s3-app:%BUILD_NUMBER% .
@@ -50,7 +50,7 @@ pipeline {
     stage('Push Image') {
       steps {
         bat '''
-        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app
+        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-irsa-app
         docker push %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
