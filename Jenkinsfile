@@ -21,7 +21,7 @@ pipeline {
         withCredentials([
           [
             $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-creds'
+            credentialsId: 'aws-cred'
           ]
         ]) {
           bat '''
