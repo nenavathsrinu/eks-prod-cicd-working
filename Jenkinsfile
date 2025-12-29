@@ -38,11 +38,11 @@ pipeline {
     stage('Build Image') {
       steps {
         bat '''
-        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-irsa-app
+        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app
 
-        cd apps\\s3-irsa-app
-        docker build -t s3-irsa-app:%BUILD_NUMBER% .
-        docker tag s3-irsa-app:%BUILD_NUMBER% %ECR_REPO%:%BUILD_NUMBER%
+        cd apps\\s3-app
+        docker build -t s3-app:%BUILD_NUMBER% .
+        docker tag s3-app:%BUILD_NUMBER% %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
     }
@@ -50,7 +50,7 @@ pipeline {
     stage('Push Image') {
       steps {
         bat '''
-        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-irsa-app
+        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app
         docker push %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
@@ -59,7 +59,7 @@ pipeline {
     stage('Deploy to EKS') {
       steps {
         bat '''
-        cd apps\\s3-irsa-app
+        cd apps\\s3-app
         powershell -Command "(Get-Content k8s\\deployment.yaml) -replace 'IMAGE_TAG','%BUILD_NUMBER%' | Set-Content k8s\\deployment.yaml"
         kubectl apply -f k8s\\
         '''
