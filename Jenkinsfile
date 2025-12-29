@@ -25,9 +25,6 @@ pipeline {
         ]) {
           bat '''
           set ECR_REGISTRY=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
-
-          aws sts get-caller-identity
-
           aws ecr get-login-password --region %AWS_REGION% ^
           | docker login --username AWS --password-stdin %ECR_REGISTRY%
           '''
@@ -35,34 +32,34 @@ pipeline {
       }
     }
 
-    stage('Build Image') {
+    stage('Build & Push Image') {
       steps {
         bat '''
         set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-irsa-app
 
         cd apps\\s3-app
-        docker build -t s3-app:%BUILD_NUMBER% .
-        docker tag s3-app:%BUILD_NUMBER% %ECR_REPO%:%BUILD_NUMBER%
-        '''
-      }
-    }
-
-    stage('Push Image') {
-      steps {
-        bat '''
-        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-irsa-app
+        docker build -t s3-irsa-app:%BUILD_NUMBER% .
+        docker tag s3-irsa-app:%BUILD_NUMBER% %ECR_REPO%:%BUILD_NUMBER%
         docker push %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
     }
 
-    stage('Deploy to EKS') {
+    stage('Deploy via Terraform (Same as GitHub Actions)') {
       steps {
-        bat '''
-        cd apps\\s3-app
-        powershell -Command "(Get-Content k8s\\deployment.yaml) -replace 'IMAGE_TAG','%BUILD_NUMBER%' | Set-Content k8s\\deployment.yaml"
-        kubectl apply -f k8s\\
-        '''
+        withCredentials([
+          [
+            $class: 'AmazonWebServicesCredentialsBinding',
+            credentialsId: 'aws-cred'
+          ]
+        ]) {
+          bat '''
+          cd infra
+          terraform init -input=false
+          terraform apply -auto-approve ^
+            -var="image_tag=%BUILD_NUMBER%"
+          '''
+        }
       }
     }
   }
