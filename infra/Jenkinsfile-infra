@@ -1,11 +1,13 @@
 pipeline {
   agent any
 
-  environment {
-    AWS_REGION = "ap-south-2"
-  }
-
   stages {
+
+    stage('⚠️ Confirm Destroy') {
+      steps {
+        input message: 'Are you SURE you want to DESTROY infrastructure?'
+      }
+    }
 
     stage('Checkout Infra Code') {
       steps {
@@ -17,10 +19,7 @@ pipeline {
     stage('Terraform Init') {
       steps {
         withCredentials([
-          [
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-cred'
-          ]
+          [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']
         ]) {
           bat '''
           cd infra
@@ -30,34 +29,15 @@ pipeline {
       }
     }
 
-    stage('Terraform Plan') {
+    stage('Terraform Destroy (Final Approval)') {
       steps {
+        input message: 'FINAL WARNING: This will DELETE all resources. Continue?'
         withCredentials([
-          [
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-cred'
-          ]
+          [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']
         ]) {
           bat '''
           cd infra
-          terraform plan -out=tfplan
-          '''
-        }
-      }
-    }
-
-    stage('Terraform Apply (Approval)') {
-      steps {
-        input message: 'Approve Terraform Apply?'
-        withCredentials([
-          [
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-cred'
-          ]
-        ]) {
-          bat '''
-          cd infra
-          terraform apply tfplan
+          terraform destroy -auto-approve
           '''
         }
       }
