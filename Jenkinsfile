@@ -2,10 +2,8 @@ pipeline {
   agent any
 
   environment {
-    AWS_REGION   = "ap-south-2"
-    ACCOUNT_ID   = "442880721659"
-    ECR_REGISTRY = "%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com"
-    ECR_REPO     = "%ECR_REGISTRY%/s3-app"
+    AWS_REGION = "ap-south-2"
+    ACCOUNT_ID = "442880721659"
   }
 
   stages {
@@ -22,12 +20,14 @@ pipeline {
         withCredentials([
           [
             $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-cred'   // ✅ make sure this ID exists
+            credentialsId: 'aws-cred'
           ]
         ]) {
           bat '''
           echo AWS_REGION=%AWS_REGION%
           echo ACCOUNT_ID=%ACCOUNT_ID%
+
+          set ECR_REGISTRY=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
 
           aws sts get-caller-identity
 
@@ -41,6 +41,8 @@ pipeline {
     stage('Build Image') {
       steps {
         bat '''
+        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app
+
         cd apps\\s3-app
         docker build -t s3-app:%BUILD_NUMBER% .
         docker tag s3-app:%BUILD_NUMBER% %ECR_REPO%:%BUILD_NUMBER%
@@ -51,6 +53,7 @@ pipeline {
     stage('Push Image') {
       steps {
         bat '''
+        set ECR_REPO=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/s3-app
         docker push %ECR_REPO%:%BUILD_NUMBER%
         '''
       }
