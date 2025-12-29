@@ -1,13 +1,15 @@
 pipeline {
   agent any
 
-  stages {
+  parameters {
+    choice(
+      name: 'ACTION',
+      choices: ['APPLY', 'DESTROY'],
+      description: 'Choose APPLY to create/update infra or DESTROY to delete infra'
+    )
+  }
 
-    stage('⚠️ Confirm Destroy') {
-      steps {
-        input message: 'Are you SURE you want to DESTROY infrastructure?'
-      }
-    }
+  stages {
 
     stage('Checkout Infra Code') {
       steps {
@@ -29,9 +31,45 @@ pipeline {
       }
     }
 
-    stage('Terraform Destroy (Final Approval)') {
+    stage('Terraform Plan') {
+      when {
+        expression { params.ACTION == 'APPLY' }
+      }
       steps {
-        input message: 'FINAL WARNING: This will DELETE all resources. Continue?'
+        withCredentials([
+          [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']
+        ]) {
+          bat '''
+          cd infra
+          terraform plan
+          '''
+        }
+      }
+    }
+
+    stage('Terraform Apply (Approval)') {
+      when {
+        expression { params.ACTION == 'APPLY' }
+      }
+      steps {
+        input message: 'Approve Terraform APPLY?'
+        withCredentials([
+          [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']
+        ]) {
+          bat '''
+          cd infra
+          terraform apply -auto-approve
+          '''
+        }
+      }
+    }
+
+    stage('Terraform Destroy (Safety Check)') {
+      when {
+        expression { params.ACTION == 'DESTROY' }
+      }
+      steps {
+        input message: '⚠️ WARNING: This will DESTROY all infrastructure. Continue?'
         withCredentials([
           [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']
         ]) {
